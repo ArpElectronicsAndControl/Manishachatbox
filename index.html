@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>આનંદ❤️ WhatsApp Clone</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #e5ddd5; display: flex; justify-content: center; height: 100dvh; overflow: hidden; }
+        .chat-container { width: 100%; max-width: 500px; background: #efe7de; display: flex; flex-direction: column; height: 100%; position: relative; }
+        .header { background: #075e54; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; z-index: 10; height: 60px; flex-shrink: 0; }
+        .header span { font-size: 20px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .clear-btn { background: rgba(255, 255, 255, 0.2); border: none; color: white; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        #chat-box { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); position: relative; scroll-behavior: smooth; }
+        .falling-heart { position: absolute; top: -20px; color: #ff4d4d; font-size: 18px; user-select: none; z-index: 1; pointer-events: none; animation: heartFall linear forwards; }
+        @keyframes heartFall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+        .message { margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; max-width: 85%; word-wrap: break-word; position: relative; font-size: 15px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); z-index: 2; }
+        .sent { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 2px; }
+        .received { align-self: flex-start; background: white; border-bottom-left-radius: 2px; }
+        .chat-img { max-width: 100%; border-radius: 5px; margin-top: 5px; display: block; }
+        audio { max-width: 100%; margin-top: 5px; height: 35px; }
+        .bottom-bar { display: flex; align-items: flex-end; padding: 10px 8px; gap: 5px; background: transparent; z-index: 10; flex-shrink: 0; }
+        .input-wrapper { display: flex; align-items: center; background: white; border-radius: 25px; flex: 1; padding: 2px 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .icon-btn { font-size: 22px; cursor: pointer; color: #858b8f; padding: 8px; }
+        input[type="text"] { flex: 1; border: none; outline: none; padding: 10px 5px; font-size: 16px; background: transparent; width: 100%; }
+        .action-btn { background: #00897b; color: white; width: 48px; height: 48px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: none; cursor: pointer; font-size: 20px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.3); transition: background 0.3s; }
+        .recording { background: #ff4757 !important; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .emoji-menu { position: absolute; bottom: 70px; left: 10px; background: white; border-radius: 10px; padding: 10px; display: none; grid-template-columns: repeat(6, 1fr); gap: 10px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 20; }
+        .emoji-item { cursor: pointer; font-size: 24px; text-align: center; }
+        .attach-menu { position: absolute; bottom: 70px; right: 60px; background: white; border-radius: 15px; display: none; flex-direction: column; padding: 15px; gap: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 20; }
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="header">
+        <span>આનંદ ❤️ Message</span>
+        <button class="clear-btn" id="clearBtn">Clear All</button>
+    </div>
+    
+    <div id="chat-box"></div>
+
+    <div class="emoji-menu" id="emojiMenu">
+        <span class="emoji-item">😊</span> <span class="emoji-item">😂</span> <span class="emoji-item">❤️</span> 
+        <span class="emoji-item">👍</span> <span class="emoji-item">🙏</span> <span class="emoji-item">😘</span>
+        <span class="emoji-item">🔥</span> <span class="emoji-item">😭</span> <span class="emoji-item">😍</span>
+        <span class="emoji-item">✨</span> <span class="emoji-item">😎</span> <span class="emoji-item">🌹</span>
+    </div>
+
+    <div class="attach-menu" id="attachMenu">
+        <label style="cursor:pointer" id="galleryBtn">🖼️ Gallery</label>
+        <label style="cursor:pointer" id="cameraBtn">📷 Camera</label>
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*" style="display:none">
+    <input type="file" id="camInput" accept="image/*" capture="camera" style="display:none">
+
+    <div class="bottom-bar">
+        <div class="input-wrapper">
+            <div class="icon-btn" id="emojiToggle">😊</div>
+            <input type="text" id="msgInput" placeholder="મેસેજ લખો..." autocomplete="off">
+            <div class="icon-btn" style="transform: rotate(45deg);" id="attachToggle">📎</div>
+            <div class="icon-btn" id="directCam">📷</div>
+        </div>
+        <button class="action-btn" id="sendBtn">🎤</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, push, onChildAdded, remove, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyB4nqUWM_raMKoEXEmpX7KpFAwEm4B6nVU",
+        authDomain: "mychatapp-3bb67.firebaseapp.com",
+        databaseURL: "https://mychatapp-3bb67-default-rtdb.firebaseio.com",
+        projectId: "mychatapp-3bb67",
+        storageBucket: "mychatapp-3bb67.firebasestorage.app",
+        messagingSenderId: "829898694526",
+        appId: "1:829898694526:web:c6265f21e301c93804dd2f"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const messagesRef = ref(db, 'chats');
+    const senderName = "User_B";
+
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const chatBox = document.getElementById('chat-box');
+
+    // Heart Rain
+    function createHeart() {
+        const heart = document.createElement('div');
+        heart.classList.add('falling-heart');
+        heart.innerHTML = '❤️';
+        heart.style.left = Math.random() * 95 + '%';
+        heart.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        chatBox.appendChild(heart);
+        setTimeout(() => heart.remove(), 5000);
+    }
+    setInterval(createHeart, 600);
+
+    // Emoji/Menu Toggle
+    document.getElementById('emojiToggle').onclick = () => {
+        document.getElementById('emojiMenu').style.display = document.getElementById('emojiMenu').style.display === 'grid' ? 'none' : 'grid';
+    };
+
+    document.querySelectorAll('.emoji-item').forEach(emoji => {
+        emoji.onclick = () => {
+            msgInput.value += emoji.innerText;
+            msgInput.focus();
+            msgInput.dispatchEvent(new Event('input'));
+        };
+    });
+
+    // File/Camera Upload
+    const handleFile = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => push(messagesRef, { sender: senderName, type: "image", content: event.target.result, timestamp: Date.now() });
+            reader.readAsDataURL(file);
+        }
+        document.getElementById('attachMenu').style.display = 'none';
+    };
+
+    document.getElementById('attachToggle').onclick = () => document.getElementById('attachMenu').style.display = document.getElementById('attachMenu').style.display === 'flex' ? 'none' : 'flex';
+    document.getElementById('galleryBtn').onclick = () => document.getElementById('fileInput').click();
+    document.getElementById('cameraBtn').onclick = () => document.getElementById('camInput').click();
+    document.getElementById('directCam').onclick = () => document.getElementById('camInput').click();
+    document.getElementById('fileInput').onchange = handleFile;
+    document.getElementById('camInput').onchange = handleFile;
+
+    // --- Audio Recording Logic Fixed ---
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    async function handleAudio() {
+        if (!isRecording) {
+            // Request permission explicitly
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = e => {
+                    if (e.data.size > 0) audioChunks.push(e.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        push(messagesRef, { sender: senderName, type: "audio", content: e.target.result, timestamp: Date.now() });
+                    };
+                    reader.readAsDataURL(audioBlob);
+                    // Stop all tracks to release microphone
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                sendBtn.classList.add('recording');
+                console.log("Recording started...");
+            } catch (err) {
+                console.error("Error access mic:", err);
+                alert("માઇક્રોફોન પરમિશન જરૂરી છે! જો તમે મોબાઈલમાં હોવ તો બ્રાઉઝર સેટિંગમાં જઈને 'Allow' કરો.");
+            }
+        } else {
+            mediaRecorder.stop();
+            isRecording = false;
+            sendBtn.classList.remove('recording');
+            console.log("Recording stopped.");
+        }
+    }
+
+    // Sending Logic
+    msgInput.oninput = () => sendBtn.innerHTML = msgInput.value.trim() ? "➤" : "🎤";
+
+    const sendMsg = () => {
+        if (msgInput.value.trim()) {
+            push(messagesRef, { sender: senderName, type: "text", content: msgInput.value.trim(), timestamp: Date.now() });
+            msgInput.value = "";
+            sendBtn.innerHTML = "🎤";
+        } else {
+            handleAudio();
+        }
+    };
+
+    sendBtn.onclick = sendMsg;
+    msgInput.onkeypress = (e) => { if(e.key === 'Enter') sendMsg(); };
+
+    // Scroll to Bottom
+    function scrollToBottom() {
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Display Logic
+    onChildAdded(messagesRef, (data) => {
+        const msg = data.val();
+        const div = document.createElement('div');
+        div.classList.add('message', msg.sender === senderName ? 'sent' : 'received');
+        
+        if (msg.type === "image") {
+            div.innerHTML = `<img src="${msg.content}" class="chat-img">`;
+        } else if (msg.type === "audio") {
+            div.innerHTML = `<audio controls src="${msg.content}"></audio>`;
+        } else {
+            div.innerText = msg.content;
+        }
+        
+        chatBox.appendChild(div);
+        scrollToBottom();
+    });
+
+    onValue(messagesRef, (snapshot) => {
+        if (!snapshot.exists()) chatBox.innerHTML = "";
+        setTimeout(scrollToBottom, 100);
+    });
+
+    document.getElementById('clearBtn').onclick = () => { if(confirm("બધી ચેટ હિસ્ટ્રી ડીલીટ કરવી છે?")) remove(messagesRef); };
+    msgInput.onfocus = () => { document.getElementById('emojiMenu').style.display = 'none'; document.getElementById('attachMenu').style.display = 'none'; };
+</script>
+</body>
+</html>
