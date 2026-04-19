@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>આનંદ❤️ WhatsApp Clone</title>
+    <title>આનંદ❤️ મેસેજ વેબસાઈટ</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #e5ddd5; display: flex; justify-content: center; height: 100dvh; overflow: hidden; }
@@ -14,12 +14,22 @@
         #chat-box { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); position: relative; scroll-behavior: smooth; }
         .falling-heart { position: absolute; top: -20px; color: #ff4d4d; font-size: 18px; user-select: none; z-index: 1; pointer-events: none; animation: heartFall linear forwards; }
         @keyframes heartFall { to { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
-        .message { margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; max-width: 85%; word-wrap: break-word; position: relative; font-size: 15px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); z-index: 2; }
+        
+        /* Message Styling */
+        .message { margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; max-width: 85%; word-wrap: break-word; position: relative; font-size: 15px; box-shadow: 0 1px 1px rgba(0,0,0,0.1); z-index: 2; transition: transform 0.2s; touch-action: pan-y; }
         .sent { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 2px; }
         .received { align-self: flex-start; background: white; border-bottom-left-radius: 2px; }
         .chat-img { max-width: 100%; border-radius: 5px; margin-top: 5px; display: block; }
         audio { max-width: 100%; margin-top: 5px; height: 35px; }
-        .bottom-bar { display: flex; align-items: flex-end; padding: 10px 8px; gap: 5px; background: transparent; z-index: 10; flex-shrink: 0; }
+
+        /* Reply UI Styling */
+        .reply-preview { background: rgba(0,0,0,0.05); border-left: 4px solid #075e54; padding: 5px 8px; border-radius: 4px; margin-bottom: 5px; font-size: 13px; color: #555; display: flex; justify-content: space-between; align-items: center; }
+        .reply-box-container { background: white; padding: 5px 10px; display: none; border-bottom: 1px solid #ddd; }
+        .message-reply-header { font-weight: bold; color: #075e54; font-size: 12px; margin-bottom: 2px; }
+        .message .replied-content { background: rgba(0,0,0,0.05); border-left: 3px solid #06d755; padding: 4px 8px; border-radius: 4px; margin-bottom: 4px; font-size: 13px; opacity: 0.8; }
+
+        .bottom-bar { display: flex; flex-direction: column; background: transparent; z-index: 10; flex-shrink: 0; }
+        .input-area { display: flex; align-items: flex-end; padding: 5px 8px 10px 8px; gap: 5px; }
         .input-wrapper { display: flex; align-items: center; background: white; border-radius: 25px; flex: 1; padding: 2px 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
         .icon-btn { font-size: 22px; cursor: pointer; color: #858b8f; padding: 8px; }
         input[type="text"] { flex: 1; border: none; outline: none; padding: 10px 5px; font-size: 16px; background: transparent; width: 100%; }
@@ -57,19 +67,33 @@
     <input type="file" id="camInput" accept="image/*" capture="camera" style="display:none">
 
     <div class="bottom-bar">
-        <div class="input-wrapper">
-            <div class="icon-btn" id="emojiToggle">😊</div>
-            <input type="text" id="msgInput" placeholder="મેસેજ લખો..." autocomplete="off">
-            <div class="icon-btn" style="transform: rotate(45deg);" id="attachToggle">📎</div>
-            <div class="icon-btn" id="directCam">📷</div>
+        <div class="reply-box-container" id="replyBox">
+            <div class="reply-preview">
+                <div>
+                    <div class="message-reply-header" id="replySenderName">સંદેશો</div>
+                    <div id="replyText">મેસેજ લોડ થઈ રહ્યો છે...</div>
+                </div>
+                <div style="cursor:pointer; font-weight:bold;" onclick="cancelReply()">✕</div>
+            </div>
         </div>
-        <button class="action-btn" id="sendBtn">🎤</button>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <div class="icon-btn" id="emojiToggle">😊</div>
+                <input type="text" id="msgInput" placeholder="મેસેજ લખો..." autocomplete="off">
+                <div class="icon-btn" style="transform: rotate(45deg);" id="attachToggle">📎</div>
+                <div class="icon-btn" id="directCam">📷</div>
+            </div>
+            <button class="action-btn" id="sendBtn">🎤</button>
+        </div>
     </div>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, push, onChildAdded, remove, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+// firebase બધીજ key અહીંયા nakhvi
 
     const firebaseConfig = {
         apiKey: "AIzaSyB4nqUWM_raMKoEXEmpX7KpFAwEm4B6nVU",
@@ -84,11 +108,16 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const messagesRef = ref(db, 'chats');
+   
+    // સામેવાળા માટે વેબસાઈટ બનાવવા માટે user_A ની જગ્યા પર user_A કરવું અહીંયા નીચે 
+    
     const senderName = "User_B";
+    let selectedReplyData = null; // રિપ્લાય ડેટા સ્ટોર કરવા માટે
 
     const msgInput = document.getElementById('msgInput');
     const sendBtn = document.getElementById('sendBtn');
     const chatBox = document.getElementById('chat-box');
+    const replyBox = document.getElementById('replyBox');
 
     // Heart Rain
     function createHeart() {
@@ -120,8 +149,15 @@
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = (event) => push(messagesRef, { sender: senderName, type: "image", content: event.target.result, timestamp: Date.now() });
+            reader.onload = (event) => push(messagesRef, { 
+                sender: senderName, 
+                type: "image", 
+                content: event.target.result, 
+                timestamp: Date.now(),
+                replyTo: selectedReplyData 
+            });
             reader.readAsDataURL(file);
+            cancelReply();
         }
         document.getElementById('attachMenu').style.display = 'none';
     };
@@ -140,41 +176,65 @@
 
     async function handleAudio() {
         if (!isRecording) {
-            // Request permission explicitly
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
-
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) audioChunks.push(e.data);
-                };
-
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                     const reader = new FileReader();
                     reader.onload = e => {
-                        push(messagesRef, { sender: senderName, type: "audio", content: e.target.result, timestamp: Date.now() });
+                        push(messagesRef, { 
+                            sender: senderName, 
+                            type: "audio", 
+                            content: e.target.result, 
+                            timestamp: Date.now(),
+                            replyTo: selectedReplyData 
+                        });
+                        cancelReply();
                     };
                     reader.readAsDataURL(audioBlob);
-                    // Stop all tracks to release microphone
                     stream.getTracks().forEach(track => track.stop());
                 };
-
                 mediaRecorder.start();
                 isRecording = true;
                 sendBtn.classList.add('recording');
-                console.log("Recording started...");
-            } catch (err) {
-                console.error("Error access mic:", err);
-                alert("માઇક્રોફોન પરમિશન જરૂરી છે! જો તમે મોબાઈલમાં હોવ તો બ્રાઉઝર સેટિંગમાં જઈને 'Allow' કરો.");
-            }
+            } catch (err) { alert("માઇક્રોફોન પરમિશન જરૂરી છે!"); }
         } else {
             mediaRecorder.stop();
             isRecording = false;
             sendBtn.classList.remove('recording');
-            console.log("Recording stopped.");
         }
+    }
+
+    // --- Reply Logic ---
+    window.cancelReply = function() {
+        selectedReplyData = null;
+        replyBox.style.display = "none";
+    };
+
+    function enableSwipeToReply(element, msgData) {
+        let startX = 0;
+        element.addEventListener('touchstart', (e) => { startX = e.touches[0].clientX; });
+        element.addEventListener('touchmove', (e) => {
+            let moveX = e.touches[0].clientX - startX;
+            if (moveX > 0 && moveX < 60) { element.style.transform = `translateX(${moveX}px)`; }
+        });
+        element.addEventListener('touchend', (e) => {
+            let endX = e.changedTouches[0].clientX;
+            if (endX - startX > 50) { 
+                selectedReplyData = { 
+                    content: msgData.type === 'text' ? msgData.content : (msgData.type === 'image' ? '📸 Photo' : '🎤 Audio'), 
+                    sender: msgData.sender 
+                };
+                document.getElementById('replySenderName').innerText = msgData.sender === senderName ? "તમે" : msgData.sender;
+                document.getElementById('replyText').innerText = selectedReplyData.content;
+                replyBox.style.display = "block";
+                msgInput.focus();
+            }
+            element.style.transform = `translateX(0px)`;
+        });
     }
 
     // Sending Logic
@@ -182,9 +242,18 @@
 
     const sendMsg = () => {
         if (msgInput.value.trim()) {
-            push(messagesRef, { sender: senderName, type: "text", content: msgInput.value.trim(), timestamp: Date.now() });
+            push(messagesRef, { 
+                sender: senderName, 
+                type: "text", 
+                content: msgInput.value.trim(), 
+                timestamp: Date.now(),
+                replyTo: selectedReplyData 
+            });
             msgInput.value = "";
             sendBtn.innerHTML = "🎤";
+            cancelReply();
+        } else if (!isRecording) {
+            handleAudio();
         } else {
             handleAudio();
         }
@@ -194,9 +263,7 @@
     msgInput.onkeypress = (e) => { if(e.key === 'Enter') sendMsg(); };
 
     // Scroll to Bottom
-    function scrollToBottom() {
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
+    function scrollToBottom() { chatBox.scrollTop = chatBox.scrollHeight; }
 
     // Display Logic
     onChildAdded(messagesRef, (data) => {
@@ -204,14 +271,26 @@
         const div = document.createElement('div');
         div.classList.add('message', msg.sender === senderName ? 'sent' : 'received');
         
+        let htmlContent = "";
+        
+        // જો રિપ્લાય હોય તો ઉપર પડછાયો બતાવવો
+        if (msg.replyTo) {
+            htmlContent += `<div class="replied-content">
+                <div style="font-weight:bold; font-size:11px; color:#075e54;">${msg.replyTo.sender === senderName ? "તમે" : msg.replyTo.sender}</div>
+                ${msg.replyTo.content}
+            </div>`;
+        }
+
         if (msg.type === "image") {
-            div.innerHTML = `<img src="${msg.content}" class="chat-img">`;
+            htmlContent += `<img src="${msg.content}" class="chat-img">`;
         } else if (msg.type === "audio") {
-            div.innerHTML = `<audio controls src="${msg.content}"></audio>`;
+            htmlContent += `<audio controls src="${msg.content}"></audio>`;
         } else {
-            div.innerText = msg.content;
+            htmlContent += `<div>${msg.content}</div>`;
         }
         
+        div.innerHTML = htmlContent;
+        enableSwipeToReply(div, msg); // સ્વાઈપ ફીચર એડ કરવું
         chatBox.appendChild(div);
         scrollToBottom();
     });
@@ -223,6 +302,17 @@
 
     document.getElementById('clearBtn').onclick = () => { if(confirm("બધી ચેટ હિસ્ટ્રી ડીલીટ કરવી છે?")) remove(messagesRef); };
     msgInput.onfocus = () => { document.getElementById('emojiMenu').style.display = 'none'; document.getElementById('attachMenu').style.display = 'none'; };
+    
+     // આની નીચે જે કોડે છે એ વેબસાઈટ ખુલે ત્યારે ફોન માં એલર્ટ આપવા નો કોડ છે કોડ માં જેને એલર્ટ જોઈતું હોય એનું webhook url નાખવાથી વેબસાઈટ જયારે ખુલશે ત્યારે એમને મેસેજ આવશે, આ કોડ કાઢવો હોય તો આ કોમેન્ટ થી લઈને નીચે <script> લખેલુ આવે એની ઊપર સુધી કાઢવો બાકી બધો વેબસાઈટ નો જરૂરી કોડ છે 
+window.onload = function() {
+    // નીચેની લિંકમાં તમારી MacroDroid થી કોપી કરેલી Webhook URL પેસ્ટ કરો
+    var webhookURL = "https://trigger.macrodroid.com/a2a3140a-9ec6-4f81-8086-69ca301b334d/website_alert";
+
+    fetch(webhookURL)
+    .then(response => console.log("Alert Sent!"))
+    .catch(error => console.error("Error:", error));
+};
+
 </script>
 </body>
 </html>
